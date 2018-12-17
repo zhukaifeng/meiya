@@ -3,6 +3,9 @@ package com.taidii.app;
 public class Constants {
     public static final String APP_ID = "wx236cf7677b85c759";
     public static final String SECRET = "eef2ca17e25e2d7a6992424e4825949a";
+    public static final String BASE_HTTP_PORT = "https://dev.news.meiyashop.com.cn";
+
+    public static final String API_LOGIN = "/comapi/login/appreg";
 
     public static class ShowMsgActivity {
 		public static final String STitle = "showmsg_title";

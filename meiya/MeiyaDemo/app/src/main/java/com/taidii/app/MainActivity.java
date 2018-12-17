@@ -9,21 +9,24 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.itheima.view.BridgeWebView;
+import com.taidii.app.model.WXUserInfo;
 import com.taidii.app.utils.LogUtils;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
 
-    BridgeWebView mBdwebview;
-    TextView title;
-    LinearLayout linear_back;
+    private BridgeWebView mBdwebview;
+    private TextView title;
+    private LinearLayout linear_back;
+    private WXUserInfo mUserInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mUserInfo = (WXUserInfo)getIntent().getSerializableExtra("userinfo");
 
         mBdwebview = findViewById(R.id.bdwebview);
         title = findViewById(R.id.title);

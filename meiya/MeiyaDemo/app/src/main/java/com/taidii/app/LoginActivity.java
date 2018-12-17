@@ -5,17 +5,28 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatButton;
+import android.util.Base64;
 import android.view.View;
 
 import com.taidii.app.model.WXUserInfo;
 import com.taidii.app.utils.LogUtils;
+import com.taidii.app.utils.MD5;
 import com.tencent.mm.opensdk.modelmsg.SendAuth;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.WXAPIFactory;
+import com.zhy.http.okhttp.OkHttpUtils;
+import com.zhy.http.okhttp.callback.StringCallback;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+
+import java.util.Calendar;
+
+import okhttp3.Call;
+
+import static com.taidii.app.Constants.API_LOGIN;
+import static com.taidii.app.Constants.BASE_HTTP_PORT;
 
 /**
  * Created by zhukaifeng on 2018/11/30.
@@ -26,6 +37,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
 	private AppCompatButton btn_login;
 	public static IWXAPI mWxApi;
+	private WXUserInfo mUserInfo;
 
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -109,13 +121,64 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 	}
 
 	@Subscribe(threadMode = ThreadMode.MAIN)
-	public void onEventMainThread(WXUserInfo event){
-		LogUtils.d("url:" + event.getHeadimgurl());
+	public void onEventMainThread(WXUserInfo userInfo){
+		LogUtils.d("url:" + userInfo.getHeadimgurl());
+		if (null != userInfo)
+			getLoginToken(userInfo);
 
-		Intent intent = new Intent(this, MainActivity.class);
-		startActivity(intent);
+//
+//		Intent intent = new Intent(this, MainActivity.class);
+//		intent.putExtra("userinfo",userInfo);
+//		startActivity(intent);
 	}
 
+	private void getLoginToken(WXUserInfo userInfo) {
+
+		String url = BASE_HTTP_PORT + API_LOGIN;
+
+		String 	signature = ""	;
+		String timeStamp = String.valueOf(Calendar.getInstance().getTimeInMillis());
+
+		/*String[] strArray = new String[];
+		strArray[0] = Constants.APP_ID;
+		strArray[1] = Constants.SECRET;
+		strArray[2] = userInfo.getOpenid();
+		strArray[3] = userInfo.getUnionid();
+		strArray[4] = timeStamp;*/
+		StringBuffer stringBuffer = new StringBuffer();
+		stringBuffer.append(Constants.APP_ID).append("|")
+				.append(Constants.SECRET).append("|")
+				.append(userInfo.getOpenid()).append("|")
+				.append(userInfo.getUnionid()).append("|")
+				.append(timeStamp);
+
+		String strBase64 = Base64.encodeToString(stringBuffer.toString().getBytes(), Base64.DEFAULT);
+		String strMd5 = MD5.Md5(strBase64);
+		signature = strMd5;
+
+		OkHttpUtils.get().addParams("app_id",Constants.APP_ID).url(url)
+				.addParams("openid",userInfo.getOpenid())
+				.addParams("unionid",userInfo.getUnionid())
+				.addParams("time", timeStamp)
+				.addParams("signature",signature)
+				.addParams("nickname",userInfo.getNickname())
+				.addParams("avatar",userInfo.getHeadimgurl())
+				.build()
+				.execute(new StringCallback() {
+					@Override
+					public void onError(Call call, Exception e, int id) {
+							LogUtils.d("zkf e:" + e.toString());
+					}
+
+					@Override
+					public void onResponse(String response, int id) {
+						LogUtils.d("zkf response:" + response);
+					}
+				});
+
+
+
+	}
 
 
 }

@@ -90,17 +90,6 @@ public class WXEntryActivity extends Activity implements IWXAPIEventHandler {
 
 	private void getAccessToken(String code) {
 
-		StringBuffer stringBuffer = new StringBuffer();
-		stringBuffer.append("https://api.weixin.qq.com/sns/oauth2/access_token?appid=")
-				.append(APP_ID)
-				.append("&secret=")
-				.append("eef2ca17e25e2d7a6992424e4825949a")
-				.append("&code=")
-				.append(code)
-				.append("&grant_type=authorization_code");
-
-		String url = stringBuffer.toString();
-
 		OkHttpUtils.get().url("https://api.weixin.qq.com/sns/oauth2/access_token")
 				.addParams("appid",APP_ID)
 				.addParams("secret",SECRET)
