@@ -11,7 +11,7 @@ public class NoticeRsp {
 
 	/**
 	 * code : 1
-	 * data : [{"id":1,"app_id":"wxe08d5bf1d2a21b13","content":"通知内容","start_time":1543383000,"end_time":1543583057,"sort":1,"status":1,"create_time":1543383057,"update_time":1543383057,"delete_time":null}]
+	 * data : [{"id":1,"app_id":"wx236cf7677b85c759","content":"nihao","start_time":1543383000,"end_time":1553583057,"sort":1,"status":1,"create_time":1543383057,"update_time":1543383057,"delete_time":null}]
 	 * msg : 操作成功
 	 */
 
@@ -46,10 +46,10 @@ public class NoticeRsp {
 	public static class DataBean {
 		/**
 		 * id : 1
-		 * app_id : wxe08d5bf1d2a21b13
-		 * content : 通知内容
+		 * app_id : wx236cf7677b85c759
+		 * content : nihao
 		 * start_time : 1543383000
-		 * end_time : 1543583057
+		 * end_time : 1553583057
 		 * sort : 1
 		 * status : 1
 		 * create_time : 1543383057

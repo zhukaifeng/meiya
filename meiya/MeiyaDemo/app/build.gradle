@@ -11,7 +11,7 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
-        def keystoreDir = "/Users/beifengchuidejishiben/AndroidStudioProjects/keyStore";
+        def keystoreDir = "F:/AndroidWork/keyStore";
         releaseConfig {
             File propFile = file(keystoreDir + "/maplebear/singnconfig.properties")
             def Properties prop = new Properties();

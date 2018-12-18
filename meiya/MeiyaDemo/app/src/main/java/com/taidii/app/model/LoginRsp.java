@@ -1,15 +1,17 @@
 package com.taidii.app.model;
 
+import java.io.Serializable;
+
 /**
  * Created by zhukaifeng on 2018/12/2.
  */
 
-public class LoginRsp {
+public class LoginRsp implements Serializable{
 
 
 	/**
 	 * code : 1
-	 * data : {"token":"MTU0MzU0NDg2OZuqrWKauISctJ15qrKwp8qviHqdjJqzn4y6tpe8ZYPLhKqsZ4LLiZy_oI1jv451krB4fpmLh6acmbeeoA","sessionid":"s_5bfe445c071461543390300","uid":103,"openid":"1234"}
+	 * data : {"token":"MTU0NTE5MDQwNpnaemWXjbaihJmC24axftSCobuasbbNmL6Ll2mChY1kgbWBnYWfrmqOqn6VhqV6lYehumGy3LjRrqVgdA","sessionid":"s_5c186a86556d51545104006","uid":"37","openid":"oY_ES1fzeOaU0udXyAVgq9KNZlZY"}
 	 * msg : 操作成功
 	 */
 
@@ -41,17 +43,17 @@ public class LoginRsp {
 		this.msg = msg;
 	}
 
-	public static class DataBean {
+	public static class DataBean implements Serializable{
 		/**
-		 * token : MTU0MzU0NDg2OZuqrWKauISctJ15qrKwp8qviHqdjJqzn4y6tpe8ZYPLhKqsZ4LLiZy_oI1jv451krB4fpmLh6acmbeeoA
-		 * sessionid : s_5bfe445c071461543390300
-		 * uid : 103
-		 * openid : 1234
+		 * token : MTU0NTE5MDQwNpnaemWXjbaihJmC24axftSCobuasbbNmL6Ll2mChY1kgbWBnYWfrmqOqn6VhqV6lYehumGy3LjRrqVgdA
+		 * sessionid : s_5c186a86556d51545104006
+		 * uid : 37
+		 * openid : oY_ES1fzeOaU0udXyAVgq9KNZlZY
 		 */
 
 		private String token;
 		private String sessionid;
-		private int uid;
+		private String uid;
 		private String openid;
 
 		public String getToken() {
@@ -70,11 +72,11 @@ public class LoginRsp {
 			this.sessionid = sessionid;
 		}
 
-		public int getUid() {
+		public String getUid() {
 			return uid;
 		}
 
-		public void setUid(int uid) {
+		public void setUid(String uid) {
 			this.uid = uid;
 		}
 

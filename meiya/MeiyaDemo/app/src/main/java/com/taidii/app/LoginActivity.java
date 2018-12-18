@@ -1,13 +1,20 @@
 package com.taidii.app;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatButton;
 import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.taidii.app.model.LoginRsp;
 import com.taidii.app.model.WXUserInfo;
 import com.taidii.app.utils.LogUtils;
 import com.taidii.app.utils.MD5;
@@ -22,6 +29,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.Calendar;
+import java.util.Date;
 
 import okhttp3.Call;
 
@@ -120,6 +128,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 		super.onActivityResult(requestCode, resultCode, data);
 	}
 
+	@RequiresApi(api = Build.VERSION_CODES.O)
 	@Subscribe(threadMode = ThreadMode.MAIN)
 	public void onEventMainThread(WXUserInfo userInfo){
 		LogUtils.d("url:" + userInfo.getHeadimgurl());
@@ -132,12 +141,13 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 //		startActivity(intent);
 	}
 
+	@RequiresApi(api = Build.VERSION_CODES.O)
 	private void getLoginToken(WXUserInfo userInfo) {
 
 		String url = BASE_HTTP_PORT + API_LOGIN;
 
 		String 	signature = ""	;
-		String timeStamp = String.valueOf(Calendar.getInstance().getTimeInMillis());
+		String timeStamp = String.valueOf(getSecondTimestampTwo(new Date()));
 
 		/*String[] strArray = new String[];
 		strArray[0] = Constants.APP_ID;
@@ -151,18 +161,24 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 				.append(userInfo.getOpenid()).append("|")
 				.append(userInfo.getUnionid()).append("|")
 				.append(timeStamp);
+		LogUtils.d("zkf stringBuffer :" + stringBuffer.toString());
 
-		String strBase64 = Base64.encodeToString(stringBuffer.toString().getBytes(), Base64.DEFAULT);
+
+		String strBase64 = java.util.Base64.getEncoder().encodeToString(stringBuffer.toString().getBytes());
+		LogUtils.d(	"zkf strBase64 :" + strBase64);
+
 		String strMd5 = MD5.Md5(strBase64);
 		signature = strMd5;
 
-		OkHttpUtils.get().addParams("app_id",Constants.APP_ID).url(url)
+		LogUtils.d(	"zkf strMd5 :" + strMd5);
+
+		OkHttpUtils.get().url(url).addParams("app_id",Constants.APP_ID)
 				.addParams("openid",userInfo.getOpenid())
-				.addParams("unionid",userInfo.getUnionid())
-				.addParams("time", timeStamp)
-				.addParams("signature",signature)
-				.addParams("nickname",userInfo.getNickname())
 				.addParams("avatar",userInfo.getHeadimgurl())
+				.addParams("nickname",userInfo.getNickname())
+				.addParams("times", timeStamp)
+				.addParams("signature",signature)
+				.addParams("unionid",userInfo.getUnionid())
 				.build()
 				.execute(new StringCallback() {
 					@Override
@@ -173,12 +189,33 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 					@Override
 					public void onResponse(String response, int id) {
 						LogUtils.d("zkf response:" + response);
+						JsonParser parser = new JsonParser();
+						JsonObject json = parser.parse(response).getAsJsonObject();
+
+						if (json.has("code") && json.get("code").getAsInt() == 1){
+							Gson gson = new Gson();
+							LoginRsp loginRsp = gson.fromJson(response,LoginRsp.class);
+							Intent intent = new Intent(LoginActivity.this,MainActivity.class);
+							intent.putExtra("logininfo",loginRsp);
+							startActivity(intent);
+						}
+
+
 					}
 				});
 
 
 
 	}
+
+	public static int getSecondTimestampTwo(Date date){
+		if (null == date) {
+			return 0;
+		}
+		String timestamp = String.valueOf(date.getTime()/1000);
+		return Integer.valueOf(timestamp);
+	}
+
 
 
 }
