@@ -19,8 +19,6 @@ import com.taidii.app.model.WXUserInfo;
 import com.taidii.app.utils.LogUtils;
 import com.taidii.app.utils.MD5;
 import com.tencent.mm.opensdk.modelmsg.SendAuth;
-import com.tencent.mm.opensdk.openapi.IWXAPI;
-import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.StringCallback;
 
@@ -28,13 +26,14 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-import java.util.Calendar;
 import java.util.Date;
 
 import okhttp3.Call;
 
+import static android.util.Base64.NO_WRAP;
 import static com.taidii.app.Constants.API_LOGIN;
 import static com.taidii.app.Constants.BASE_HTTP_PORT;
+import static com.taidii.app.MyApplication.mWxApi;
 
 /**
  * Created by zhukaifeng on 2018/11/30.
@@ -44,7 +43,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
 
 	private AppCompatButton btn_login;
-	public static IWXAPI mWxApi;
 	private WXUserInfo mUserInfo;
 
 	@Override
@@ -54,7 +52,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
 		btn_login = findViewById(R.id.btn_login);
 		btn_login.setOnClickListener(this);
-		registerToWX();
 		EventBus.getDefault().register(this);
 
 
@@ -110,10 +107,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 		}
 	}
 
-	private void registerToWX() {
-		mWxApi = WXAPIFactory.createWXAPI(this, Constants.APP_ID, false);
-		mWxApi.registerApp(Constants.APP_ID);
-	}
+
 
 
 	@Override
@@ -163,9 +157,12 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 				.append(timeStamp);
 		LogUtils.d("zkf stringBuffer :" + stringBuffer.toString());
 
+//String test = "wx236cf7677b85c759|eef2ca17e25e2d7a6992424e4825949a|oY_ES1cC47QLvKnYGigDOQF2gf3g|oHs5q1Jp08p2eZfiAYa10subDI5c|1545033924";
+//		String strBase64 = java.util.Base64.getEncoder().encodeToString(stringBuffer.toString().getBytes());
+		String strBase64 = Base64.encodeToString(stringBuffer.toString().getBytes(),NO_WRAP);
 
-		String strBase64 = java.util.Base64.getEncoder().encodeToString(stringBuffer.toString().getBytes());
-		LogUtils.d(	"zkf strBase64 :" + strBase64);
+		Log.d(	"zkf strBase64 :" , strBase64);
+
 
 		String strMd5 = MD5.Md5(strBase64);
 		signature = strMd5;

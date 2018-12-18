@@ -1,6 +1,5 @@
 package com.taidii.app;
 
-import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -17,10 +16,13 @@ import com.taidii.app.model.LoginRsp;
 import com.taidii.app.model.UserInfo;
 import com.taidii.app.model.WXUserInfo;
 import com.taidii.app.utils.LogUtils;
+import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.StringCallback;
 
 import okhttp3.Call;
+
+import static com.taidii.app.MyApplication.mWxApi;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
@@ -41,6 +43,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mBdwebview = findViewById(R.id.bdwebview);
         title = findViewById(R.id.title);
+        title.setText("福利之家");
+        title.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                WXLaunchMiniProgram.Req req = new WXLaunchMiniProgram.Req();
+                req.userName = "wx236cf7677b85c759"; // 填小程序原始id
+//                req.path = path;                  //拉起小程序页面的可带参路径，不填默认拉起小程序首页
+                req.miniprogramType = WXLaunchMiniProgram.Req.MINIPROGRAM_TYPE_PREVIEW;// 可选打开 开发版，体验版和正式版
+                mWxApi.sendReq(req);
+            }
+        });
         linear_back = findViewById(R.id.linear_back);
         linear_back.setOnClickListener(this);
 
