@@ -8,8 +8,10 @@ import com.google.gson.Gson;
 import com.taidii.app.model.WXAccessTokenEntity;
 import com.taidii.app.model.WXUserInfo;
 import com.taidii.app.utils.LogUtils;
+import com.tencent.mm.opensdk.constants.ConstantsAPI;
 import com.tencent.mm.opensdk.modelbase.BaseReq;
 import com.tencent.mm.opensdk.modelbase.BaseResp;
+import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram;
 import com.tencent.mm.opensdk.modelmsg.SendAuth;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler;
@@ -84,6 +86,12 @@ public class WXEntryActivity extends Activity implements IWXAPIEventHandler {
 			default:
 				//发送返回
 				break;
+		}
+		if (resp.getType() == ConstantsAPI.COMMAND_LAUNCH_WX_MINIPROGRAM) {
+			WXLaunchMiniProgram.Resp launchMiniProResp = (WXLaunchMiniProgram.Resp) resp;
+			String extraData =launchMiniProResp.extMsg; //对应小程序组件 <button open-type="launchApp"> 中的 app-parameter 属性
+
+			LogUtils.d("zkf extraData:" + extraData);
 		}
 
 	}

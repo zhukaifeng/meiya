@@ -43,7 +43,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
 
 	private AppCompatButton btn_login;
-	private WXUserInfo mUserInfo;
 
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -136,7 +135,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 	}
 
 	@RequiresApi(api = Build.VERSION_CODES.O)
-	private void getLoginToken(WXUserInfo userInfo) {
+	private void getLoginToken(final WXUserInfo userInfo) {
 
 		String url = BASE_HTTP_PORT + API_LOGIN;
 
@@ -194,6 +193,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 							LoginRsp loginRsp = gson.fromJson(response,LoginRsp.class);
 							Intent intent = new Intent(LoginActivity.this,MainActivity.class);
 							intent.putExtra("logininfo",loginRsp);
+							intent.putExtra("wxuserinfo",userInfo);
 							startActivity(intent);
 						}
 

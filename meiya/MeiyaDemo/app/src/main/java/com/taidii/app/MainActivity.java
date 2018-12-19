@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         loginRsp = (LoginRsp) getIntent().getSerializableExtra("logininfo");
+        mUserInfo = (WXUserInfo) getIntent().getSerializableExtra("wxuserinfo");
 
         mBdwebview = findViewById(R.id.bdwebview);
         title = findViewById(R.id.title);
@@ -48,9 +49,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onClick(View v) {
                 WXLaunchMiniProgram.Req req = new WXLaunchMiniProgram.Req();
-                req.userName = "wx236cf7677b85c759"; // 填小程序原始id
+                req.userName = "gh_6688012ca93d"; // 填小程序原始id
 //                req.path = path;                  //拉起小程序页面的可带参路径，不填默认拉起小程序首页
-                req.miniprogramType = WXLaunchMiniProgram.Req.MINIPROGRAM_TYPE_PREVIEW;// 可选打开 开发版，体验版和正式版
+                req.miniprogramType = WXLaunchMiniProgram.Req.MINIPTOGRAM_TYPE_RELEASE;// 可选打开 开发版，体验版和正式版
                 mWxApi.sendReq(req);
             }
         });
@@ -66,10 +67,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
-//        String url = "https://dev.changwb.cn/spread/myapp/appindex#/?uid=87&app_id=wxe08d5bf1d2a21b13&&token=123&sessionid=456\n"
+
+
 
         String url = Constants.BASE_HTTP_PORT + String.format(Constants.API_WEBVIEW_URL, loginRsp.getData().getUid(),
-                Constants.APP_ID, loginRsp.getData().getToken(), loginRsp.getData().getUid());
+                Constants.APP_ID, loginRsp.getData().getToken(), loginRsp.getData().getSessionid(),mUserInfo.getOpenid());
+        LogUtils.d("zkf url:" + url);
 
         mBdwebview.loadUrl(url);//显示H5页面
         mBdwebview.addBridgeInterface(new MyJavaSctiptInterface(this));
