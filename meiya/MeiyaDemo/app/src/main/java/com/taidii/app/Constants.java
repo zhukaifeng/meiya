@@ -8,7 +8,8 @@ public class Constants {
     public static final String API_LOGIN = "/comapi/login/appreg";
     public static final String API_GET_INFO = "/comapi/user/getMyInfo";
     public static final String API_GET_NOTICE = "/comapi/user/getMyNotice";
-    public static final String API_WEBVIEW_URL = "/spread/myapp/appindex#/?uid=%1$s&app_id=%2$s&token=%3$s&sessionid=%4$s&openid=%5$s";
+    public static final String API_WEBVIEW_URL =
+            "/spread/myapp/appindex#/?uid=%1$s&app_id=%2$s&token=%3$s&sessionid=%4$s&openid=%5$s&model=android";
 
     public static class ShowMsgActivity {
 		public static final String STitle = "showmsg_title";
