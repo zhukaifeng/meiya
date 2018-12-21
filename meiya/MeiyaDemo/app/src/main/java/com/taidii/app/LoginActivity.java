@@ -15,9 +15,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.taidii.app.model.LoginRsp;
+import com.taidii.app.model.RefreshEvent;
+import com.taidii.app.model.WXAccessTokenEntity;
+import com.taidii.app.model.WXRefreshEntity;
 import com.taidii.app.model.WXUserInfo;
 import com.taidii.app.utils.LogUtils;
 import com.taidii.app.utils.MD5;
+import com.taidii.app.utils.SharePrefUtils;
+import com.taidii.app.wxapi.WXEntryActivity;
 import com.tencent.mm.opensdk.modelmsg.SendAuth;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.StringCallback;
@@ -32,7 +37,9 @@ import okhttp3.Call;
 
 import static android.util.Base64.NO_WRAP;
 import static com.taidii.app.Constants.API_LOGIN;
+import static com.taidii.app.Constants.APP_ID;
 import static com.taidii.app.Constants.BASE_HTTP_PORT;
+import static com.taidii.app.Constants.SECRET;
 import static com.taidii.app.MyApplication.mWxApi;
 
 /**
@@ -42,47 +49,52 @@ import static com.taidii.app.MyApplication.mWxApi;
 public class LoginActivity extends AppCompatActivity implements View.OnClickListener {
 
 
-	private AppCompatButton btn_login;
+    private AppCompatButton btn_login;
 
-	@Override
-	protected void onCreate(@Nullable Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_login);
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_login);
 
-		btn_login = findViewById(R.id.btn_login);
-		btn_login.setOnClickListener(this);
-		EventBus.getDefault().register(this);
+        btn_login = findViewById(R.id.btn_login);
+        btn_login.setOnClickListener(this);
+        EventBus.getDefault().register(this);
 
 
-	}
+    }
 
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		EventBus.getDefault().unregister(this);
-	}
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        EventBus.getDefault().unregister(this);
+    }
 
-	@Override
-	public void onClick(View view) {
-		switch (view.getId()) {
-			case R.id.btn_login:
-				if (!mWxApi.isWXAppInstalled()) {
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.btn_login:
+
+
+                if (!mWxApi.isWXAppInstalled()) {
 //                    Intent intent = new Intent(this, MyDialogActivity.class);
 //                    startActivity(intent);
-				} else {
-//                    final SendAuth.Req req = new SendAuth.Req();
-//                    req.scope = "snsapi_userinfo";
-//                    req.state = "wechat_sdk_demo_test";
-//                    iwxapi.sendReq(req);
-					SendAuth.Req req = new SendAuth.Req();
-					req.scope = "snsapi_userinfo";
-					req.state = "diandi_wx_login";
-					mWxApi.sendReq(req);
-				}
+                } else {
+
+                    long nowTime = System.currentTimeMillis();
+                    long loginTime = SharePrefUtils.getLong("wechat_login", 0);
+
+                    if ((nowTime - loginTime) / (1000 * 60) > (24 * 60 * 20)) {//重新刷新token
+                        SendAuth.Req req = new SendAuth.Req();
+                        req.scope = "snsapi_userinfo";
+                        req.state = "diandi_wx_login";
+                        mWxApi.sendReq(req);
+                    } else {
+                        getRefreshAccessToken();//刷新refresh_token
+                    }
+
+                }
 
 
-//                Intent intent = new Intent(LoginActivity.this,MainActivity.class);
-//                startActivity(intent);
 
 
 //                CustomConfirmDialog.Builder builder = new CustomConfirmDialog.Builder(LoginActivity.this);
@@ -102,117 +114,219 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 //                builder.create().show();
 
 
-				break;
-		}
-	}
+                break;
+        }
+    }
 
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        LogUtils.d("zkf requestCode:" + requestCode);
+        if (resultCode == 0) {
+            String headUrl = data.getStringExtra("headUrl");
+            LogUtils.d("url:" + headUrl);
+            Intent intent = new Intent(this, MainActivity.class);
+            // Glide.with(WXLoginActivity.this).load(headUrl).into(ivHead);
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventMainThread(WXUserInfo userInfo) {
+        LogUtils.d("url:" + userInfo.getHeadimgurl());
+        if (null != userInfo) {
+            SharePrefUtils.saveString("openid", userInfo.getOpenid());
+            SharePrefUtils.saveString("avatar", userInfo.getHeadimgurl());
+            SharePrefUtils.saveString("nickname", userInfo.getNickname());
+            SharePrefUtils.saveString("unionid", userInfo.getUnionid());
 
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		LogUtils.d("zkf requestCode:" + requestCode);
-		if (resultCode == 0) {
-			String headUrl = data.getStringExtra("headUrl");
-			LogUtils.d("url:" + headUrl);
-			Intent intent = new Intent(this, MainActivity.class);
-			// Glide.with(WXLoginActivity.this).load(headUrl).into(ivHead);
-		}
-		super.onActivityResult(requestCode, resultCode, data);
-	}
+            getLoginToken(userInfo);
 
-	@RequiresApi(api = Build.VERSION_CODES.O)
-	@Subscribe(threadMode = ThreadMode.MAIN)
-	public void onEventMainThread(WXUserInfo userInfo){
-		LogUtils.d("url:" + userInfo.getHeadimgurl());
-		if (null != userInfo)
-			getLoginToken(userInfo);
+        }
 
 //
 //		Intent intent = new Intent(this, MainActivity.class);
 //		intent.putExtra("userinfo",userInfo);
 //		startActivity(intent);
-	}
+    }
 
-	@RequiresApi(api = Build.VERSION_CODES.O)
-	private void getLoginToken(final WXUserInfo userInfo) {
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventMainThreadGetWXToken(RefreshEvent refreshEvent) {
+        getAccessToken(refreshEvent.getCode());
+    }
 
-		String url = BASE_HTTP_PORT + API_LOGIN;
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void getLoginToken(final WXUserInfo userInfo) {
 
-		String 	signature = ""	;
-		String timeStamp = String.valueOf(getSecondTimestampTwo(new Date()));
+        String url = BASE_HTTP_PORT + API_LOGIN;
 
-		/*String[] strArray = new String[];
-		strArray[0] = Constants.APP_ID;
-		strArray[1] = Constants.SECRET;
-		strArray[2] = userInfo.getOpenid();
-		strArray[3] = userInfo.getUnionid();
-		strArray[4] = timeStamp;*/
-		StringBuffer stringBuffer = new StringBuffer();
-		stringBuffer.append(Constants.APP_ID).append("|")
-				.append(Constants.SECRET).append("|")
-				.append(userInfo.getOpenid()).append("|")
-				.append(userInfo.getUnionid()).append("|")
-				.append(timeStamp);
-		LogUtils.d("zkf stringBuffer :" + stringBuffer.toString());
-
-//String test = "wx236cf7677b85c759|eef2ca17e25e2d7a6992424e4825949a|oY_ES1cC47QLvKnYGigDOQF2gf3g|oHs5q1Jp08p2eZfiAYa10subDI5c|1545033924";
-//		String strBase64 = java.util.Base64.getEncoder().encodeToString(stringBuffer.toString().getBytes());
-		String strBase64 = Base64.encodeToString(stringBuffer.toString().getBytes(),NO_WRAP);
-
-		Log.d(	"zkf strBase64 :" , strBase64);
+        String signature = "";
+        String timeStamp = String.valueOf(getSecondTimestampTwo(new Date()));
 
 
-		String strMd5 = MD5.Md5(strBase64);
-		signature = strMd5;
+        StringBuffer stringBuffer = new StringBuffer();
+        stringBuffer.append(Constants.APP_ID).append("|")
+                .append(Constants.SECRET).append("|")
+                .append(SharePrefUtils.getString("openid")).append("|")
+                .append(SharePrefUtils.getString("unionid")).append("|")
+                .append(timeStamp);
+        String strBase64 = Base64.encodeToString(stringBuffer.toString().getBytes(), NO_WRAP);
 
-		LogUtils.d(	"zkf strMd5 :" + strMd5);
+        String strMd5 = MD5.Md5(strBase64);
+        signature = strMd5;
 
-		OkHttpUtils.get().url(url).addParams("app_id",Constants.APP_ID)
-				.addParams("openid",userInfo.getOpenid())
-				.addParams("avatar",userInfo.getHeadimgurl())
-				.addParams("nickname",userInfo.getNickname())
-				.addParams("times", timeStamp)
-				.addParams("signature",signature)
-				.addParams("unionid",userInfo.getUnionid())
-				.build()
-				.execute(new StringCallback() {
-					@Override
-					public void onError(Call call, Exception e, int id) {
-							LogUtils.d("zkf e:" + e.toString());
-					}
+        OkHttpUtils.get().url(url).addParams("app_id", Constants.APP_ID)
+                .addParams("openid", SharePrefUtils.getString("openid"))
+                .addParams("avatar", SharePrefUtils.getString("avatar"))
+                .addParams("nickname", SharePrefUtils.getString("nickname"))
+                .addParams("times", timeStamp)
+                .addParams("signature", signature)
+                .addParams("unionid", SharePrefUtils.getString("unionid"))
+                .build()
+                .execute(new StringCallback() {
+                    @Override
+                    public void onError(Call call, Exception e, int id) {
+                        LogUtils.d("zkf e:" + e.toString());
+                    }
 
-					@Override
-					public void onResponse(String response, int id) {
-						LogUtils.d("zkf response:" + response);
-						JsonParser parser = new JsonParser();
-						JsonObject json = parser.parse(response).getAsJsonObject();
+                    @Override
+                    public void onResponse(String response, int id) {
+                        LogUtils.d("zkf response:" + response);
+                        JsonParser parser = new JsonParser();
+                        JsonObject json = parser.parse(response).getAsJsonObject();
 
-						if (json.has("code") && json.get("code").getAsInt() == 1){
-							Gson gson = new Gson();
-							LoginRsp loginRsp = gson.fromJson(response,LoginRsp.class);
-							Intent intent = new Intent(LoginActivity.this,MainActivity.class);
-							intent.putExtra("logininfo",loginRsp);
-							intent.putExtra("wxuserinfo",userInfo);
-							startActivity(intent);
-						}
+                        if (json.has("code") && json.get("code").getAsInt() == 1) {
+                            Gson gson = new Gson();
+                            LoginRsp loginRsp = gson.fromJson(response, LoginRsp.class);
+
+                            SharePrefUtils.saveString("login_token", loginRsp.getData().getToken());
+                            SharePrefUtils.saveString("login_sessionid", loginRsp.getData().getSessionid());
+                            SharePrefUtils.saveString("login_uid", loginRsp.getData().getUid());
+                            SharePrefUtils.saveString("login_openid", loginRsp.getData().getOpenid());
+
+                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                            startActivity(intent);
+                            finish();
+                        }
+
+                    }
+                });
 
 
-					}
-				});
+    }
+
+    public static int getSecondTimestampTwo(Date date) {
+        if (null == date) {
+            return 0;
+        }
+        String timestamp = String.valueOf(date.getTime() / 1000);
+        return Integer.valueOf(timestamp);
+    }
+
+
+    private void getRefreshAccessToken() {
+
+        OkHttpUtils.get().url("https://api.weixin.qq.com/sns/oauth2/refresh_token")
+                .addParams("appid", APP_ID)
+                .addParams("refresh_token", SharePrefUtils.getString("refresh_token"))
+                .addParams("grant_type", "refresh_token")
+                .build()
+                .execute(new StringCallback() {
+                    @Override
+                    public void onError(okhttp3.Call call, Exception e, int id) {
+                        LogUtils.d("请求错误..");
+                    }
+
+                    @Override
+                    public void onResponse(String response, int id) {
+                        LogUtils.d("response:" + response);
+                        Gson gson = new Gson();
+                        WXRefreshEntity refreshTokenEntity = gson.fromJson(response, WXRefreshEntity.class);
+                        if (refreshTokenEntity != null) {
+                            SharePrefUtils.saveString("refresh_token",refreshTokenEntity.getRefresh_token());
+                            //  getUserInfo(accessTokenEntity);
+                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            LogUtils.d("获取失败");
+                            SendAuth.Req req = new SendAuth.Req();
+                            req.scope = "snsapi_userinfo";
+                            req.state = "diandi_wx_login";
+                            mWxApi.sendReq(req);
+                        }
+                    }
+                });
+
+
+    }
+
+    private void getAccessToken(String code) {
+
+        OkHttpUtils.get().url("https://api.weixin.qq.com/sns/oauth2/access_token")
+                .addParams("appid",APP_ID)
+                .addParams("secret",SECRET)
+                .addParams("code",code)
+                .addParams("grant_type","authorization_code")
+                .build()
+                .execute(new StringCallback() {
+                    @Override
+                    public void onError(okhttp3.Call call, Exception e, int id) {
+                        LogUtils.d("请求错误..");
+                    }
+
+                    @Override
+                    public void onResponse(String response, int id) {
+                        LogUtils.d("response:"+response);
+                        Gson gson = new Gson();
+                        WXAccessTokenEntity accessTokenEntity = gson.fromJson(response,WXAccessTokenEntity.class) ;
+                        if(accessTokenEntity!=null){
+                            SharePrefUtils.saveString("refresh_token",accessTokenEntity.getRefresh_token());
+                            SharePrefUtils.saveLong("wechat_login", System.currentTimeMillis());
+                            getUserInfo(accessTokenEntity);
+                        }else {
+                            LogUtils.d("获取失败");
+                        }
+                    }
+                });
 
 
 
-	}
 
-	public static int getSecondTimestampTwo(Date date){
-		if (null == date) {
-			return 0;
-		}
-		String timestamp = String.valueOf(date.getTime()/1000);
-		return Integer.valueOf(timestamp);
-	}
+    }
 
+    /**
+     * 获取个人信息
+     * @param accessTokenEntity
+     */
+    private void getUserInfo(WXAccessTokenEntity accessTokenEntity) {
+        OkHttpUtils.get()
+                .url("https://api.weixin.qq.com/sns/userinfo")
+                .addParams("access_token",accessTokenEntity.getAccess_token())
+                .addParams("openid",accessTokenEntity.getOpenid())//openid:授权用户唯一标识
+                .build()
+                .execute(new StringCallback() {
+                    @Override
+                    public void onError(okhttp3.Call call, Exception e, int id) {
+                        LogUtils.d("获取错误..");
+                    }
+
+                    @Override
+                    public void onResponse(String response, int id) {
+                        LogUtils.d("userInfo:"+response);
+                        Gson gson = new Gson();
+                        WXUserInfo wxResponse = gson.fromJson(response,WXUserInfo.class);
+                        LogUtils.d("微信登录资料已获取，后续未完成");
+                        String headUrl = wxResponse.getHeadimgurl();
+                        LogUtils.d("头像Url:"+headUrl);
+                        //App.getShared().putString("headUrl",headUrl);
+                        Intent intent = getIntent();
+                        intent.putExtra("headUrl",headUrl);
+                        EventBus.getDefault().post(wxResponse);
+                    }
+                });
+    }
 
 
 }

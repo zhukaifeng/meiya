@@ -16,11 +16,16 @@ import okhttp3.OkHttpClient;
 public class MyApplication extends Application {
 
     public static IWXAPI mWxApi;
+    public static MyApplication instance;
+
+    public static MyApplication getInstance() {
+        return instance;
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
-      //  registerToWX();
+        instance = this;
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
                 .addInterceptor(new LoggerInterceptor("TAG"))
                 //其他配置

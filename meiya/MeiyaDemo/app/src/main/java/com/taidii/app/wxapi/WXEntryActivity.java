@@ -5,9 +5,11 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.google.gson.Gson;
+import com.taidii.app.model.RefreshEvent;
 import com.taidii.app.model.WXAccessTokenEntity;
 import com.taidii.app.model.WXUserInfo;
 import com.taidii.app.utils.LogUtils;
+import com.taidii.app.utils.SharePrefUtils;
 import com.tencent.mm.opensdk.constants.ConstantsAPI;
 import com.tencent.mm.opensdk.modelbase.BaseReq;
 import com.tencent.mm.opensdk.modelbase.BaseResp;
@@ -71,12 +73,11 @@ public class WXEntryActivity extends Activity implements IWXAPIEventHandler {
 				SendAuth.Resp sendResp = (SendAuth.Resp) resp;
 				if (sendResp != null) {
 					String code = sendResp.code;
-					getAccessToken(code);
-				//	getAccess_token(code);
+					EventBus.getDefault().post(new RefreshEvent(code));
 				}
+				finish();
 				break;
 			case BaseResp.ErrCode.ERR_USER_CANCEL:
-				LogUtils.d("zkf ERR_USER_CANCEL");
 				//发送取消
 				break;
 			case BaseResp.ErrCode.ERR_AUTH_DENIED:
@@ -90,77 +91,11 @@ public class WXEntryActivity extends Activity implements IWXAPIEventHandler {
 		if (resp.getType() == ConstantsAPI.COMMAND_LAUNCH_WX_MINIPROGRAM) {
 			WXLaunchMiniProgram.Resp launchMiniProResp = (WXLaunchMiniProgram.Resp) resp;
 			String extraData =launchMiniProResp.extMsg; //对应小程序组件 <button open-type="launchApp"> 中的 app-parameter 属性
-
 			LogUtils.d("zkf extraData:" + extraData);
 		}
 
 	}
 
-	private void getAccessToken(String code) {
-
-		OkHttpUtils.get().url("https://api.weixin.qq.com/sns/oauth2/access_token")
-				.addParams("appid",APP_ID)
-				.addParams("secret",SECRET)
-				.addParams("code",code)
-				.addParams("grant_type","authorization_code")
-				.build()
-				.execute(new StringCallback() {
-					@Override
-					public void onError(okhttp3.Call call, Exception e, int id) {
-						LogUtils.d("请求错误..");
-					}
-
-					@Override
-					public void onResponse(String response, int id) {
-						LogUtils.d("response:"+response);
-						Gson gson = new Gson();
-						WXAccessTokenEntity accessTokenEntity = gson.fromJson(response,WXAccessTokenEntity.class) ;
-						if(accessTokenEntity!=null){
-							getUserInfo(accessTokenEntity);
-						}else {
-							LogUtils.d("获取失败");
-						}
-					}
-				});
-
-
-
-
-	}
-
-	/**
-	 * 获取个人信息
-	 * @param accessTokenEntity
-	 */
-	private void getUserInfo(WXAccessTokenEntity accessTokenEntity) {
-		OkHttpUtils.get()
-				.url("https://api.weixin.qq.com/sns/userinfo")
-				.addParams("access_token",accessTokenEntity.getAccess_token())
-				.addParams("openid",accessTokenEntity.getOpenid())//openid:授权用户唯一标识
-				.build()
-				.execute(new StringCallback() {
-					@Override
-					public void onError(okhttp3.Call call, Exception e, int id) {
-						LogUtils.d("获取错误..");
-					}
-
-					@Override
-					public void onResponse(String response, int id) {
-						LogUtils.d("userInfo:"+response);
-						Gson gson = new Gson();
-						WXUserInfo wxResponse = gson.fromJson(response,WXUserInfo.class);
-						LogUtils.d("微信登录资料已获取，后续未完成");
-						String headUrl = wxResponse.getHeadimgurl();
-						LogUtils.d("头像Url:"+headUrl);
-						//App.getShared().putString("headUrl",headUrl);
-						Intent intent = getIntent();
-						intent.putExtra("headUrl",headUrl);
-						EventBus.getDefault().post(wxResponse);
-						WXEntryActivity.this.setResult(0,intent);
-						finish();
-					}
-				});
-	}
 
 
 

@@ -8,7 +8,6 @@ android {
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
         def keystoreDir = "F:/AndroidWork/keyStore";
@@ -20,16 +19,52 @@ android {
             keyAlias = prop['keyAlias']
             keyPassword = prop['keyPassword']
             storePassword = prop['storePassword']
+            v1SigningEnabled true
+            v2SigningEnabled true
         }
     }
     buildTypes {
         release {
             minifyEnabled false
+            zipAlignEnabled true
+            // 移除无用的resource文件
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         debug {
             signingConfig null
             signingConfig signingConfigs.releaseConfig
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            // 重命名产出的apk文件
+            def outputFile = output.outputFile
+            if (outputFile != null && outputFile.name.endsWith('.apk')) {
+                File outputDirectory = new File(outputFile.parent);
+                def fileName
+                if (variant.buildType.name == "release") {
+                    File localPropertiesFile = project.rootProject.file('local.properties');
+                    if (localPropertiesFile.exists()) {
+                        Properties tempProp = new Properties()
+                        InputStream inputStream = localPropertiesFile.newDataInputStream();
+                        tempProp.load(inputStream);
+                        if (tempProp.containsKey("release.dir")) {
+                            outputDirectory = new File(tempProp["release.dir"]);
+                        }
+                    }
+                    fileName = "${defaultConfig.versionName}-release.apk"
+                } else {
+                    fileName = "${defaultConfig.versionName}-debug.apk"
+                }
+                outputFile = new File(outputDirectory, fileName)
+            }
+            // 删除unaligned apk
+            if (output.zipAlign != null) {
+                output.zipAlign.doLast {
+                    //  output.zipAlign.inputFile.delete()
+                }
+            }
         }
     }
 }
