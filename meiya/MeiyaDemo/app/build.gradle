@@ -10,7 +10,7 @@ android {
         versionName "1.0"
     }
     signingConfigs {
-        def keystoreDir = "F:/AndroidWork/keyStore";
+        def keystoreDir = "/Users/beifengchuidejishiben/AndroidStudioProjects/keyStore";
         releaseConfig {
             File propFile = file(keystoreDir + "/maplebear/singnconfig.properties")
             def Properties prop = new Properties();
@@ -29,6 +29,7 @@ android {
             zipAlignEnabled true
             // 移除无用的resource文件
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.releaseConfig
         }
         debug {
             signingConfig null

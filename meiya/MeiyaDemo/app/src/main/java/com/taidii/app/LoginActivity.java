@@ -8,7 +8,6 @@ import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatButton;
 import android.util.Base64;
-import android.util.Log;
 import android.view.View;
 
 import com.google.gson.Gson;
@@ -22,7 +21,6 @@ import com.taidii.app.model.WXUserInfo;
 import com.taidii.app.utils.LogUtils;
 import com.taidii.app.utils.MD5;
 import com.taidii.app.utils.SharePrefUtils;
-import com.taidii.app.wxapi.WXEntryActivity;
 import com.tencent.mm.opensdk.modelmsg.SendAuth;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.StringCallback;
@@ -141,7 +139,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             SharePrefUtils.saveString("nickname", userInfo.getNickname());
             SharePrefUtils.saveString("unionid", userInfo.getUnionid());
 
-            getLoginToken(userInfo);
+            getLoginToken();
 
         }
 
@@ -157,7 +155,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    private void getLoginToken(final WXUserInfo userInfo) {
+    private void getLoginToken() {
 
         String url = BASE_HTTP_PORT + API_LOGIN;
 
@@ -246,9 +244,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                         if (refreshTokenEntity != null) {
                             SharePrefUtils.saveString("refresh_token",refreshTokenEntity.getRefresh_token());
                             //  getUserInfo(accessTokenEntity);
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            finish();
+                           getLoginToken();
                         } else {
                             LogUtils.d("获取失败");
                             SendAuth.Req req = new SendAuth.Req();
