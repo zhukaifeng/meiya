@@ -1,6 +1,9 @@
 package com.taidii.app;
 
+import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -8,8 +11,13 @@ import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatButton;
 import android.util.Base64;
+import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ProgressBar;
 
+import com.github.ybq.android.spinkit.SpinKitView;
+import com.github.ybq.android.spinkit.style.DoubleBounce;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -48,6 +56,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
 
     private AppCompatButton btn_login;
+    private SpinKitView spinKitView;
+    protected Dialog loadDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -57,6 +67,27 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         btn_login = findViewById(R.id.btn_login);
         btn_login.setOnClickListener(this);
         EventBus.getDefault().register(this);
+
+        LogUtils.d("zkf SharePrefUtils.getString(\"refresh_token\"):" + SharePrefUtils.getString("refresh_token"));
+        if (null != SharePrefUtils.getString("refresh_token") && !SharePrefUtils.getString("refresh_token").equals("")) {
+            if (!mWxApi.isWXAppInstalled()) {
+//                    Intent intent = new Intent(this, MyDialogActivity.class);
+//                    startActivity(intent);
+            } else {
+
+                long nowTime = System.currentTimeMillis();
+                long loginTime = SharePrefUtils.getLong("wechat_login", 0);
+                if ((nowTime - loginTime) / (1000 * 60) > (24 * 60 * 20)) {//重新刷新token 24 * 60 * 20
+                    SendAuth.Req req = new SendAuth.Req();
+                    req.scope = "snsapi_userinfo";
+                    req.state = "diandi_wx_login";
+                    mWxApi.sendReq(req);
+                } else {
+                    getRefreshAccessToken();//刷新refresh_token
+                }
+
+            }
+        }
 
 
     }
@@ -91,8 +122,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                     }
 
                 }
-
-
 
 
 //                CustomConfirmDialog.Builder builder = new CustomConfirmDialog.Builder(LoginActivity.this);
@@ -224,15 +253,17 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
 
     private void getRefreshAccessToken() {
-
+        showLoadDialog();
         OkHttpUtils.get().url("https://api.weixin.qq.com/sns/oauth2/refresh_token")
                 .addParams("appid", APP_ID)
                 .addParams("refresh_token", SharePrefUtils.getString("refresh_token"))
                 .addParams("grant_type", "refresh_token")
                 .build()
                 .execute(new StringCallback() {
+
                     @Override
                     public void onError(okhttp3.Call call, Exception e, int id) {
+                        cancelLoadDialog();
                         LogUtils.d("请求错误..");
                     }
 
@@ -242,7 +273,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                         Gson gson = new Gson();
                         WXRefreshEntity refreshTokenEntity = gson.fromJson(response, WXRefreshEntity.class);
                         if (refreshTokenEntity != null) {
-                            SharePrefUtils.saveString("refresh_token",refreshTokenEntity.getRefresh_token());
+                            SharePrefUtils.saveString("refresh_token", refreshTokenEntity.getRefresh_token());
                             //  getUserInfo(accessTokenEntity);
                            getLoginToken();
                         } else {
@@ -252,6 +283,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                             req.state = "diandi_wx_login";
                             mWxApi.sendReq(req);
                         }
+                        cancelLoadDialog();
                     }
                 });
 
@@ -259,69 +291,107 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     }
 
     private void getAccessToken(String code) {
-
+        showLoadDialog();
         OkHttpUtils.get().url("https://api.weixin.qq.com/sns/oauth2/access_token")
-                .addParams("appid",APP_ID)
-                .addParams("secret",SECRET)
-                .addParams("code",code)
-                .addParams("grant_type","authorization_code")
+                .addParams("appid", APP_ID)
+                .addParams("secret", SECRET)
+                .addParams("code", code)
+                .addParams("grant_type", "authorization_code")
                 .build()
                 .execute(new StringCallback() {
                     @Override
                     public void onError(okhttp3.Call call, Exception e, int id) {
+                        cancelLoadDialog();
                         LogUtils.d("请求错误..");
                     }
 
                     @Override
                     public void onResponse(String response, int id) {
-                        LogUtils.d("response:"+response);
+                        LogUtils.d("response:" + response);
                         Gson gson = new Gson();
-                        WXAccessTokenEntity accessTokenEntity = gson.fromJson(response,WXAccessTokenEntity.class) ;
-                        if(accessTokenEntity!=null){
-                            SharePrefUtils.saveString("refresh_token",accessTokenEntity.getRefresh_token());
+                        WXAccessTokenEntity accessTokenEntity = gson.fromJson(response, WXAccessTokenEntity.class);
+                        if (accessTokenEntity != null) {
+                            SharePrefUtils.saveString("refresh_token", accessTokenEntity.getRefresh_token());
                             SharePrefUtils.saveLong("wechat_login", System.currentTimeMillis());
                             getUserInfo(accessTokenEntity);
-                        }else {
+                        } else {
                             LogUtils.d("获取失败");
                         }
+                        cancelLoadDialog();
                     }
                 });
-
-
 
 
     }
 
     /**
      * 获取个人信息
+     *
      * @param accessTokenEntity
      */
     private void getUserInfo(WXAccessTokenEntity accessTokenEntity) {
+        showLoadDialog();
         OkHttpUtils.get()
                 .url("https://api.weixin.qq.com/sns/userinfo")
-                .addParams("access_token",accessTokenEntity.getAccess_token())
-                .addParams("openid",accessTokenEntity.getOpenid())//openid:授权用户唯一标识
+                .addParams("access_token", accessTokenEntity.getAccess_token())
+                .addParams("openid", accessTokenEntity.getOpenid())//openid:授权用户唯一标识
                 .build()
                 .execute(new StringCallback() {
                     @Override
                     public void onError(okhttp3.Call call, Exception e, int id) {
+                        cancelLoadDialog();
                         LogUtils.d("获取错误..");
                     }
 
                     @Override
                     public void onResponse(String response, int id) {
-                        LogUtils.d("userInfo:"+response);
+                        LogUtils.d("userInfo:" + response);
                         Gson gson = new Gson();
-                        WXUserInfo wxResponse = gson.fromJson(response,WXUserInfo.class);
+                        WXUserInfo wxResponse = gson.fromJson(response, WXUserInfo.class);
                         LogUtils.d("微信登录资料已获取，后续未完成");
                         String headUrl = wxResponse.getHeadimgurl();
-                        LogUtils.d("头像Url:"+headUrl);
+                        LogUtils.d("头像Url:" + headUrl);
                         //App.getShared().putString("headUrl",headUrl);
                         Intent intent = getIntent();
-                        intent.putExtra("headUrl",headUrl);
+                        intent.putExtra("headUrl", headUrl);
                         EventBus.getDefault().post(wxResponse);
+                        cancelLoadDialog();
                     }
                 });
+    }
+
+
+    protected synchronized void showLoadDialog() {
+        if (loadDialog == null) {
+            loadDialog = new Dialog(this, R.style.LoadingDialog);
+            View progressContentView = LayoutInflater.from(this).inflate(R.layout
+                    .layout_loading_dialog, null);
+            ProgressBar pb = (ProgressBar) progressContentView.findViewById(R.id.pb);
+            pb.getIndeterminateDrawable().setColorFilter(Color.parseColor("#FFFFFF"), PorterDuff.Mode.SRC_ATOP);
+            loadDialog.setContentView(progressContentView);
+            loadDialog.setCancelable(BuildConfig.DEBUG);// Debug模式下可以取消Dialog
+            loadDialog.setCanceledOnTouchOutside(false);
+        }
+        if (!loadDialog.isShowing()) {
+            loadDialog.show();
+        }
+        loadDialogShowCount++;
+    }
+
+    private volatile int loadDialogShowCount = 0;
+
+    protected void cancelLoadDialog() {
+        cancelLoadDialog(false);
+    }
+
+    protected synchronized void cancelLoadDialog(boolean force) {
+        if (force) {
+            loadDialogShowCount = 0;
+        }
+        loadDialogShowCount--;
+        if (loadDialog != null && loadDialogShowCount <= 0) {
+            loadDialog.cancel();
+        }
     }
 
 
