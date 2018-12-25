@@ -10,9 +10,10 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
 
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
 
     <application
         android:name="com.taidii.app.MyApplication"
@@ -22,7 +23,11 @@
         android:roundIcon="@drawable/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/NoTitleBarTheme"
+        android:resizeableActivity="true"
         >
+        <meta-data
+            android:name="android.max_aspect"
+            android:value="2.1"/>
         <activity
             android:name="com.taidii.app.LoginActivity"
             >

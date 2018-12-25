@@ -1,5 +1,7 @@
 package com.taidii.app;
 
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,6 +14,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.gson.Gson;
@@ -38,9 +41,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private BridgeWebView mBdwebview;
     private TextView title;
     private LinearLayout linear_back;
-//    private WXUserInfo mUserInfo;
+    private ProgressBar progressbar;
+    //    private WXUserInfo mUserInfo;
 //    private LoginRsp loginRsp;
     private ImageView iv_more;
+
+    @Override
+    public Resources getResources() {
+        Resources res = super.getResources();
+        Configuration config = new Configuration();
+        config.setToDefaults();
+        res.updateConfiguration(config, res.getDisplayMetrics());
+        return res;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,18 +62,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 //        loginRsp = (LoginRsp) getIntent().getSerializableExtra("logininfo");
 //        mUserInfo = (WXUserInfo) getIntent().getSerializableExtra("wxuserinfo");
-
+        progressbar = findViewById(R.id.progressbar);
         mBdwebview = findViewById(R.id.bdwebview);
         iv_more = findViewById(R.id.iv_more);
         iv_more.setVisibility(View.GONE);
         title = findViewById(R.id.title);
         title.setText(getResources().getString(R.string.app_name));
-        title.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
 
-            }
-        });
         linear_back = findViewById(R.id.linear_back);
         linear_back.setOnClickListener(this);
         linear_back.setVisibility(View.GONE);
@@ -70,12 +78,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAppCacheEnabled(true);
+        settings.setTextZoom(100);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
-//        settings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
-//
-//        settings.setUseWideViewPort(true);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
 
@@ -84,22 +90,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         String url = Constants.BASE_HTTP_PORT + String.format(Constants.API_WEBVIEW_URL, SharePrefUtils.getString("login_uid"),
                 Constants.APP_ID, SharePrefUtils.getString("login_token"), SharePrefUtils.getString("login_sessionid"), SharePrefUtils.getString("login_openid"));
-        LogUtils.d("zkf url:" + url);
-        String testUrl = "https://www.baidu.com/s?wd=android%20%E5%8F%8C%E5%87%BB%E9%80%80%E5%87%BA%E5%BA%94%E7%94%A8" +
-                "&rsv_spt=1&rsv_iqid=0xa0c44ff500003c78&issp=1&f=3&rsv_bp=1&rsv_idx=2&ie=utf-8&rqlang=cn&tn=baiduhome_pg&rsv_enter=0&oq=android%2520%25E5%25BE%25AE%25E4%25BF%25A1%25E7%2599%25BB%25E5%25BD%2595&rsv_t=f18bzUmGnb6KsjEl%2FN6WYSV%2BH02eco55EwgFE9WD4Oy62XiW3W3vgnocPNiHORrB1TpA&rsv_pq=d5e7971400005eb4&inputT=3864&rsv_sug3=413&rsv_sug1=245&rsv_sug7=100&rsv_sug2=1&prefixsug=android%2520%25E5%258F%258C%25E5%2587%25BB&rsp=1&rsv_sug4=5615";
-        mBdwebview.loadUrl(url);//显示H5页面
-        mBdwebview.addBridgeInterface(new MyJavaSctiptInterface(this, mBdwebview));
 
+        mBdwebview.loadUrl(url);
+        mBdwebview.addBridgeInterface(new MyJavaSctiptInterface(this, mBdwebview));
+        mBdwebview.setWebChromeClient(new WebChromeClient(){
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+                if (newProgress == 100) {
+                    // 网页加载完成
+                    progressbar.setVisibility(View.GONE);//加载完网页进度条消失
+                } else {
+                    // 加载中
+                    progressbar.setVisibility(View.VISIBLE);//开始加载网页时显示进度条
+                    progressbar.setProgress(newProgress);//设置进度值
+                }
+
+            }
+        });
         mBdwebview.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                if (mBdwebview.canGoBack()){
+                if (mBdwebview.canGoBack()) {
                     linear_back.setVisibility(View.VISIBLE);
-                }else {
+                } else {
                     linear_back.setVisibility(View.GONE);
                 }
             }
+
+
 
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
@@ -108,8 +128,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
-        getMyInfo();
-        getNoticeList();
+//        getMyInfo();
+//        getNoticeList();
     }
 
     @Override

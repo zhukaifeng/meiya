@@ -7,6 +7,14 @@
     >
 
     <include layout="@layout/titlebar"/>
+       
+    <ProgressBar
+        android:id="@+id/progressbar"
+        android:layout_width="match_parent"
+        android:layout_height="1.5dp"
+        style="@style/Base.Widget.AppCompat.ProgressBar.Horizontal"
+        />
+
 
     <com.itheima.view.BridgeWebView
         android:id="@+id/bdwebview"

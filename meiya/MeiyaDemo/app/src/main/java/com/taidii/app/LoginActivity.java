@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.github.ybq.android.spinkit.SpinKitView;
 import com.github.ybq.android.spinkit.style.DoubleBounce;
@@ -56,7 +57,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
 
     private AppCompatButton btn_login;
-    private SpinKitView spinKitView;
     protected Dialog loadDialog;
 
     @Override
@@ -67,14 +67,10 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         btn_login = findViewById(R.id.btn_login);
         btn_login.setOnClickListener(this);
         EventBus.getDefault().register(this);
-
-        LogUtils.d("zkf SharePrefUtils.getString(\"refresh_token\"):" + SharePrefUtils.getString("refresh_token"));
         if (null != SharePrefUtils.getString("refresh_token") && !SharePrefUtils.getString("refresh_token").equals("")) {
             if (!mWxApi.isWXAppInstalled()) {
-//                    Intent intent = new Intent(this, MyDialogActivity.class);
-//                    startActivity(intent);
+                Toast.makeText(LoginActivity.this,"请安装微信",Toast.LENGTH_SHORT);
             } else {
-
                 long nowTime = System.currentTimeMillis();
                 long loginTime = SharePrefUtils.getLong("wechat_login", 0);
                 if ((nowTime - loginTime) / (1000 * 60) > (24 * 60 * 20)) {//重新刷新token 24 * 60 * 20
@@ -146,37 +142,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     }
 
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        LogUtils.d("zkf requestCode:" + requestCode);
-        if (resultCode == 0) {
-            String headUrl = data.getStringExtra("headUrl");
-            LogUtils.d("url:" + headUrl);
-            Intent intent = new Intent(this, MainActivity.class);
-            // Glide.with(WXLoginActivity.this).load(headUrl).into(ivHead);
-        }
-        super.onActivityResult(requestCode, resultCode, data);
-    }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventMainThread(WXUserInfo userInfo) {
-        LogUtils.d("url:" + userInfo.getHeadimgurl());
-        if (null != userInfo) {
-            SharePrefUtils.saveString("openid", userInfo.getOpenid());
-            SharePrefUtils.saveString("avatar", userInfo.getHeadimgurl());
-            SharePrefUtils.saveString("nickname", userInfo.getNickname());
-            SharePrefUtils.saveString("unionid", userInfo.getUnionid());
-
-            getLoginToken();
-
-        }
-
-//
-//		Intent intent = new Intent(this, MainActivity.class);
-//		intent.putExtra("userinfo",userInfo);
-//		startActivity(intent);
-    }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThreadGetWXToken(RefreshEvent refreshEvent) {
@@ -185,7 +151,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void getLoginToken() {
-
+        showLoadDialog();
         String url = BASE_HTTP_PORT + API_LOGIN;
 
         String signature = "";
@@ -231,7 +197,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                             SharePrefUtils.saveString("login_sessionid", loginRsp.getData().getSessionid());
                             SharePrefUtils.saveString("login_uid", loginRsp.getData().getUid());
                             SharePrefUtils.saveString("login_openid", loginRsp.getData().getOpenid());
-
+                            cancelLoadDialog();
                             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                             startActivity(intent);
                             finish();
@@ -267,6 +233,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                         LogUtils.d("请求错误..");
                     }
 
+                    @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onResponse(String response, int id) {
                         LogUtils.d("response:" + response);
@@ -343,18 +310,21 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                         LogUtils.d("获取错误..");
                     }
 
+                    @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onResponse(String response, int id) {
                         LogUtils.d("userInfo:" + response);
                         Gson gson = new Gson();
                         WXUserInfo wxResponse = gson.fromJson(response, WXUserInfo.class);
                         LogUtils.d("微信登录资料已获取，后续未完成");
-                        String headUrl = wxResponse.getHeadimgurl();
-                        LogUtils.d("头像Url:" + headUrl);
-                        //App.getShared().putString("headUrl",headUrl);
-                        Intent intent = getIntent();
-                        intent.putExtra("headUrl", headUrl);
-                        EventBus.getDefault().post(wxResponse);
+
+                        if (null != wxResponse) {
+                            SharePrefUtils.saveString("openid", wxResponse.getOpenid());
+                            SharePrefUtils.saveString("avatar", wxResponse.getHeadimgurl());
+                            SharePrefUtils.saveString("nickname", wxResponse.getNickname());
+                            SharePrefUtils.saveString("unionid", wxResponse.getUnionid());
+                            getLoginToken();
+                        }
                         cancelLoadDialog();
                     }
                 });
